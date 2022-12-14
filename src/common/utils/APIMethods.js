@@ -1,4 +1,4 @@
-import APIConstants from "../common/constants/APIConstants";
+import APIConstants from "../../common/constants/APIConstants";
 
 const generateHeaders = (authConfig, requestHeaders, isFormData) => {
   const headers = new Headers();
@@ -110,11 +110,15 @@ export const api = async (
     .then((response) => response.json());
 };
 
-export const signupAction = async (formData) => {
+export const signupAction = async (data) => {
   const { signupURL } = APIConstants;
   return fetch(signupURL, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
     method: "POST",
-    body: formData
+    body: JSON.stringify(data)
   })
     .then(checkError)
     .then((res) => res.json());

@@ -1,11 +1,12 @@
 .wrapper {
   text-align: center;
   width: 450px;
-  height: 500px;
+  min-height: 250px;
   border: #ffffff solid 1px;
   border-radius: 8px;
   margin: auto;
   margin-top: 50px;
+  background-color: rgb(210, 210, 210);
 }
 
 .error {
@@ -15,8 +16,8 @@
 .form {
   text-align: center;
   margin: auto;
-  margin-top: 150px;
-  margin-right: 100px;
+  margin-top: 20px;
+  margin-right: 20px;
   align-items: center;
 }
 
@@ -34,4 +35,8 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+.largeButton {
+  width: 200px;
 }

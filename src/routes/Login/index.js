@@ -1,15 +1,15 @@
 import "./Login.css";
 import React from "react";
 import { Button, Form, Input } from "antd";
-import { useState } from "react";
-import { useAuthContext } from "../common/contexts/AuthContext";
-import { useMutation, useQuery } from "react-query";
-import { api, signupAction } from "../common/utils/APIMethods";
+import { useState,useEffect } from "react";
+import { useAuthContext } from "../../common/contexts/AuthContext";
+import { useMutation } from "react-query";
+import { api, signupAction } from "../../common/utils/APIMethods";
 import { useNavigate } from "react-router-dom";
 import APIConstants from "../../common/constants/APIConstants";
 
 const Login = () => {
-  const { dispatch, authConfig } = useAuthContext();
+  const { dispatch } = useAuthContext();
   const navigate = useNavigate();
   const { loginURL } = APIConstants;
   const [error, setError] = useState({
@@ -20,11 +20,7 @@ const Login = () => {
 
   const mutation = useMutation((formData) => signupAction(formData), {
     onSuccess: (response) => {
-      console.log(response);
-      navigate("/login", {
-        state: { username: response?.username },
-        replace: true
-      });
+      setOnLogin(true);
     },
     onError: (error) => {
       console.log(error);
@@ -41,6 +37,7 @@ const Login = () => {
       }),
     {
       onSuccess: (response) => {
+        
         dispatch({ type: "onLogin", payload: response });
         navigate("/dashboard", { replace: true });
       },
@@ -51,26 +48,11 @@ const Login = () => {
   );
 
   const onFinish = (values) => {
-    console.log(values);
     if (onLogin) {
       mutate(values);
-    } else {
-      fetch("http://localhost:4000/signup", {
-        method: "POST",
-        body: JSON.stringify(values),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      }).then((res) => {
-        if (res.status === 400) {
-          setError({
-            there: true,
-            message: "user already exists please login"
-          });
-        } else {
-          setIsLoggedIn(true);
-        }
-      });
+    } 
+    else {
+      mutation.mutate({...values,verifyEmail:values.email});
     }
   };
   const onFinishFailed = (errorInfo) => {
@@ -165,7 +147,6 @@ const Login = () => {
               >
                 <Input />
               </Form.Item>
-              ;
               <br />
             </>
           )}
@@ -199,7 +180,7 @@ const Login = () => {
               <br />
               <Form.Item
                 label="Verify Password"
-                name="Verify password"
+                name="verifyPassword"
                 rules={[
                   {
                     required: true,
@@ -219,7 +200,7 @@ const Login = () => {
               span: 16
             }}
           >
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" className="largeButton" htmlType="submit" loading={isLoading||mutation.isLoading}>
               {onLogin ? "Login" : "SignUp"}
             </Button>
           </Form.Item>
