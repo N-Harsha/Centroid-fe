@@ -9,6 +9,7 @@ const logoutURL = `${baseURL}api/auth/logout`;
 const loginURL = `${baseURL}api/auth/login`;
 const signupURL = `${baseURL}api/auth/user-registration`;
 const refreshToken = `${baseURL}api/auth/refresh`;
+const userSearch =  `${baseURL}api/v1/user/search`;
 
 const APIConstants = {
   defaultHeaders,
@@ -16,7 +17,8 @@ const APIConstants = {
   loginURL,
   signupURL,
   logoutURL,
-  refreshToken
+  refreshToken,
+  userSearch
 };
 
 export default APIConstants;

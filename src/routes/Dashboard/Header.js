@@ -1,6 +1,12 @@
-import {Space,Select,Avatar} from 'antd';
+import {Select,Avatar} from 'antd';
 import styled from 'styled-components';
-import {useState,useEffect} from 'react';
+import debounce from '../../common/utils';
+import APIConstants from "../../common/constants/APIConstants";
+import { api } from "../../common/utils/APIMethods";
+import { useQuery } from "react-query";
+import { useAuthContext } from '../../common/contexts/AuthContext';
+import { useState } from 'react';
+
 
 const Username = styled.div`
 font-weight: bold;
@@ -31,24 +37,31 @@ min-width: 400px;
 
 const Header = ()=>{
     const {username} = JSON.parse(window.sessionStorage.getItem('user'));
+    const [searchText,setSearchText] = useState("");
 
-    const handleChange = (e)=>{
-        
-    }
-    useEffect(()=>console.log(searchText),[searchText]);
 
+    const {authConfig} = useAuthContext();
+    const {userSearch} = APIConstants;
+    const fetchUsersWithQuery = (query)=>api({url: `${userSearch}?query=${searchText}`},authConfig);
+    const {data,isLoading,refetch} = useQuery("fetchUserWithQuery",fetchUsersWithQuery);
+
+    const debouncedSearch = debounce((query)=>{
+        setSearchText(query)
+        refetch()},400);
+
+
+    console.log(data);
 
     return  <Container>
         <UserSearch
       showSearch
       allowClear
-      value={searchText}
       placeholder="Enter any username"
+      value={searchText}
       defaultActiveFirstOption={false}
       showArrow={true}
       filterOption={false}
-      onSearch={()=>debounced}
-      onChange={handleChange}
+      onSearch={(query)=>debouncedSearch(query)}
       notFoundContent={null}
     //   options={(data || []).map((d) => ({
     //     value: d.value,

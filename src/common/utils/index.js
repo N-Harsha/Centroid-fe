@@ -1,4 +1,4 @@
-export const debounce = (func, delay, { leading } = {}) => {
+const debounce = (func, delay, { leading } = {}) => {
   let timerId;
 
   return (...args) => {
@@ -10,3 +10,4 @@ export const debounce = (func, delay, { leading } = {}) => {
     timerId = setTimeout(() => func(...args), delay);
   };
 };
+export default debounce;
