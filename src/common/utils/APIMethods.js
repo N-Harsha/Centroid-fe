@@ -9,6 +9,7 @@ const generateHeaders = (authConfig, requestHeaders, isFormData) => {
   if (!isFormData) {
     headers.append("Content-Type", "application/json");
   }
+  headers.append("Access-Control-Allow-Origin", "*");
   Object.keys(headers).forEach((key) =>
     headers.append(key, requestHeaders[key])
   );
@@ -114,8 +115,8 @@ export const signupAction = async (data) => {
   const { signupURL } = APIConstants;
   return fetch(signupURL, {
     headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
+      Accept: "application/json",
+      "Content-Type": "application/json"
     },
     method: "POST",
     body: JSON.stringify(data)

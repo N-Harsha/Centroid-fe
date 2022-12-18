@@ -1,12 +1,11 @@
-import { Avatar } from "antd";
+import { Avatar, Space, Spin, message } from "antd";
 import styled from "styled-components";
 import debounce from "../../common/utils";
 import APIConstants from "../../common/constants/APIConstants";
 import { api } from "../../common/utils/APIMethods";
-import { useQuery } from "react-query";
+import { useQuery, useMutation } from "react-query";
 import { useAuthContext } from "../../common/contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { Spin } from "antd";
+import { Children, useEffect, useState } from "react";
 import {
   AvatarWrapper,
   Container,
@@ -16,7 +15,9 @@ import {
   UserRequestContainer,
   UserSearch,
   RequestModal,
-  UserWrapper
+  UserRequestWrapper,
+  StyledRemoveIcon,
+  StyledAcceptIcon
 } from "../../common/StyledComponents";
 
 const Header = () => {
@@ -25,7 +26,15 @@ const Header = () => {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isTypeSent, setIsTypeSent] = useState(true);
   const { authConfig } = useAuthContext();
-  const { userSearch, receivedUserRequests, sentUserRequests } = APIConstants;
+  const {
+    userSearch,
+    receivedUserRequests,
+    sentUserRequests,
+    sendUserRequestURL,
+    acceptUserRequestURL,
+    cancelUserRequestURL,
+    rejectUserRequestURL
+  } = APIConstants;
   const fetchUsersWithQuery = () =>
     searchText !== "" &&
     api({ url: `${userSearch}?query=${searchText}` }, authConfig);
@@ -56,10 +65,76 @@ const Header = () => {
   } = useQuery("fetchReceivedUserRequests", fetchSentUserRequests, {
     enabled: false
   });
-  //todo write mutates for add , reject, accept, and cancel except add all have same funcationality.
+
   //add sends a request to the user. if user tries to send the user request again send not possible.
   //or we can sent the dto such that a boolean is sent along with the userdata and marke that user as sent.(most possible.)
 
+  const { mutate: sendUserRequset, isLoading: isSendRequestLoading } =
+    useMutation(
+      (id) =>
+        api({ url: `${sendUserRequestURL}/${id}`, method: "POST" }, authConfig),
+      {
+        onSuccess: (response) => {
+          if (response?.message) message.success(response.message);
+        },
+        onError: (response) => {
+          if (response?.message) message.error(response.message);
+        }
+      }
+    );
+
+  const { mutate: acceptUserRequest, isLoading: isacceptUserRequestLoading } =
+    useMutation(
+      (id) =>
+        api(
+          { url: `${acceptUserRequestURL}/${id}`, method: "PUT" },
+          authConfig
+        ),
+      {
+        onSuccess: (response) => {
+          if (response?.message) message.success(response.message);
+          recivedRequestsRefetch();
+        },
+        onError: (response) => {
+          if (response?.message) message.error(response.message);
+        }
+      }
+    );
+
+  const { mutate: rejectUserRequest, isLoading: isRejectUserRequestLoading } =
+    useMutation(
+      (id) =>
+        api(
+          { url: `${rejectUserRequestURL}/${id}`, method: "PUT" },
+          authConfig
+        ),
+      {
+        onSuccess: (response) => {
+          if (response?.message) message.success(response.message);
+          recivedRequestsRefetch();
+        },
+        onError: (response) => {
+          if (response?.message) message.error(response.message);
+        }
+      }
+    );
+  const { mutate: cancelUserRequest, isLoading: isCancelUserRequestLoading } =
+    useMutation(
+      (id) =>
+        api(
+          { url: `${cancelUserRequestURL}/${id}`, method: "PUT" },
+          authConfig
+        ),
+      {
+        onSuccess: (response) => {
+          if (response?.message) message.success(response.message);
+          sentRequestsRefetch();
+        },
+        onError: (response) => {
+          if (response?.message) message.error(response.message);
+        }
+      }
+    );
   const closeRequestModel = () => setIsRequestModalOpen(false);
 
   const debouncedSearch = debounce(() => {
@@ -79,6 +154,20 @@ const Header = () => {
     setIsRequestModalOpen(true);
   };
 
+  const handleRemoveRequest = (id) => {
+    if (isTypeSent) {
+      cancelUserRequest(id);
+    } else {
+      rejectUserRequest(id);
+    }
+  };
+  const handelAcceptRequest = (id) => {
+    acceptUserRequest(id);
+  };
+  const handleSendRequest = (id) => {
+    sendUserRequset(id);
+  };
+
   const userRequests =
     isRequestModalOpen &&
     !isSentRequestsLoading &&
@@ -87,17 +176,29 @@ const Header = () => {
 
   const parsedUserRequests = () => {
     if (!userRequests) return null;
-    if (userRequests === []) {
+    if (userRequests.length === 0) {
       return `No User Requests ${isTypeSent ? "Sent" : "Received"}`;
     }
+    return userRequests.map((request) => (
+      <UserRequestWrapper>
+        <h2 style={{ color: "black" }}>
+          {isTypeSent ? request.receiver : request.sender}
+        </h2>
+        <Space direction="horizontal">
+          <StyledRemoveIcon onClick={() => handleRemoveRequest(request.id)} />
+          {!isTypeSent && (
+            <StyledAcceptIcon onClick={() => handelAcceptRequest(request.id)} />
+          )}
+        </Space>
+      </UserRequestWrapper>
+    ));
   };
-  console.log(parsedUserRequests());
 
   const parsedData = (data?.content ?? []).map((data) => (
-    <UserWrapper key={data.id}>
-      <div>{data.username}</div>
-      <StyledAddIcon onClick={() => console.log(data.id)} />
-    </UserWrapper>
+    <UserRequestWrapper key={data.id}>
+      <h3>{data.username}</h3>
+      <StyledAddIcon onClick={() => handleSendRequest(data.id)} />
+    </UserRequestWrapper>
   ));
 
   return (
@@ -112,10 +213,14 @@ const Header = () => {
         open={isRequestModalOpen}
         onCancel={closeRequestModel}
       >
-        {isSentRequestsLoading || isRecivedRequestsLoading ? (
+        {isSentRequestsLoading ||
+        isRecivedRequestsLoading ||
+        isacceptUserRequestLoading ||
+        isCancelUserRequestLoading ||
+        isRejectUserRequestLoading ? (
           <Spin />
         ) : (
-          parsedUserRequests
+          <>{parsedUserRequests()}</>
         )}
       </RequestModal>
       <UserSearch
@@ -129,6 +234,7 @@ const Header = () => {
           setSearchText(query);
         }}
         notFoundContent={null}
+        loading={isLoading}
       >
         {parsedData}
       </UserSearch>

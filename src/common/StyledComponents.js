@@ -1,5 +1,9 @@
 import styled from "styled-components";
-import { PlusCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import {
+  PlusCircleOutlined,
+  CloseCircleOutlined,
+  CheckCircleOutlined
+} from "@ant-design/icons";
 import { Select, Avatar, Modal } from "antd";
 
 const Username = styled.div`
@@ -29,7 +33,7 @@ const UserSearch = styled(Select)`
   width: 40%;
 `;
 
-const UserWrapper = styled.div`
+const UserRequestWrapper = styled.div`
   display: flex;
   min-width: 200px;
   justify-content: space-between;
@@ -37,13 +41,21 @@ const UserWrapper = styled.div`
 
 const StyledAddIcon = styled(PlusCircleOutlined)`
   color: #3b80dc;
-  font-size: 25px;
-  padding: 3px;
+  font-size: 30px;
+  padding: 10px;
+  cursor: pointer;
 `;
 const StyledRemoveIcon = styled(CloseCircleOutlined)`
   color: #eb3941;
-  font-size: 25px;
+  font-size: 30px;
   padding: 3px;
+  cursor: pointer;
+`;
+const StyledAcceptIcon = styled(CheckCircleOutlined)`
+  color: #7ed81a;
+  font-size: 30px;
+  padding: 3px;
+  cursor: pointer;
 `;
 
 const UserRequestContainer = styled.div`
@@ -67,10 +79,11 @@ export {
   UserRequestContainer,
   StyledRemoveIcon,
   StyledAddIcon,
-  UserWrapper,
+  UserRequestWrapper,
   UserSearch,
   Container,
   AvatarWrapper,
   Username,
-  RequestModal
+  RequestModal,
+  StyledAcceptIcon
 };

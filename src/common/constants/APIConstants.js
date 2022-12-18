@@ -1,4 +1,4 @@
-const baseURL = "http://192.168.0.145:8090/";
+const baseURL = "http://localhost:8090/";
 
 const defaultHeaders = {
   Accept: "application/json",
@@ -10,6 +10,10 @@ const loginURL = `${baseURL}api/auth/login`;
 const signupURL = `${baseURL}api/auth/user-registration`;
 const refreshToken = `${baseURL}api/auth/refresh`;
 const userSearch = `${baseURL}api/v1/user/search`;
+const sendUserRequestURL = `${baseURL}api/v1/user-request/send`;
+const acceptUserRequestURL = `${baseURL}api/v1/user-request/accept`;
+const cancelUserRequestURL = `${baseURL}api/v1/user-request/cancel`;
+const rejectUserRequestURL = `${baseURL}api/v1/user-request/reject`;
 const sentUserRequests = `${baseURL}api/v1/user-request/sent`;
 const receivedUserRequests = `${baseURL}api/v1/user-request/received`;
 
@@ -22,7 +26,11 @@ const APIConstants = {
   refreshToken,
   userSearch,
   sentUserRequests,
-  receivedUserRequests
+  receivedUserRequests,
+  sendUserRequestURL,
+  acceptUserRequestURL,
+  cancelUserRequestURL,
+  rejectUserRequestURL
 };
 
 export default APIConstants;
