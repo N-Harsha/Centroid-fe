@@ -1,8 +1,12 @@
-import "./Dashboard.css"
+import "./Dashboard.css";
 import Header from "./Header";
-const Dashboard = ()=>{
-    return     (<>
-    <Header/>
-    </>)
-}
+import Members from "./Members";
+const Dashboard = () => {
+  return (
+    <>
+      <Header />
+      <Members />
+    </>
+  );
+};
 export default Dashboard;

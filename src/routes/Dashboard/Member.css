@@ -1,0 +1,15 @@
+.myBubbleUI {
+  width: 100vw;
+  height: 90vh;
+  border-radius: 50px;
+}
+
+.child {
+  width: 100%;
+  background-color: rgb(7, 195, 228);
+  font-size: 20px;
+  display: flex;
+  height: 100%;
+  border-radius: 50%;
+  flex-direction: column;
+}
