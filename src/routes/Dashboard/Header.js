@@ -1,11 +1,10 @@
 import { Avatar, Space, Spin, message } from "antd";
-import styled from "styled-components";
 import debounce from "../../common/utils";
 import APIConstants from "../../common/constants/APIConstants";
 import { api } from "../../common/utils/APIMethods";
 import { useQuery, useMutation } from "react-query";
 import { useAuthContext } from "../../common/contexts/AuthContext";
-import { Children, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AvatarWrapper,
   Container,
