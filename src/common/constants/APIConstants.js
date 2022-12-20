@@ -16,6 +16,8 @@ const cancelUserRequestURL = `${baseURL}api/v1/user-request/cancel`;
 const rejectUserRequestURL = `${baseURL}api/v1/user-request/reject`;
 const sentUserRequests = `${baseURL}api/v1/user-request/sent`;
 const receivedUserRequests = `${baseURL}api/v1/user-request/received`;
+const fetchUserConversationsURL = `${baseURL}api/v1/conversation/all`;
+const fetchConversationMessagesURL = `${baseURL}api/v1/message/fetch`;
 
 const APIConstants = {
   defaultHeaders,
@@ -30,7 +32,9 @@ const APIConstants = {
   sendUserRequestURL,
   acceptUserRequestURL,
   cancelUserRequestURL,
-  rejectUserRequestURL
+  rejectUserRequestURL,
+  fetchUserConversationsURL,
+  fetchConversationMessagesURL
 };
 
 export default APIConstants;

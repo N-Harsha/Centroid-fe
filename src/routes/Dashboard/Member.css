@@ -12,4 +12,5 @@
   height: 100%;
   border-radius: 50%;
   flex-direction: column;
+  cursor: pointer;
 }

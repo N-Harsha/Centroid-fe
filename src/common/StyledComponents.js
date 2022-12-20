@@ -21,6 +21,11 @@ const AvatarWrapper = styled.div`
   right: 20px;
 `;
 
+const ConversationHeader = styled.div`
+  display: flex;
+  flex-direction: row;
+`;
+
 const Container = styled.div`
   position: relative;
   display: flex;
@@ -85,5 +90,6 @@ export {
   AvatarWrapper,
   Username,
   RequestModal,
-  StyledAcceptIcon
+  StyledAcceptIcon,
+  ConversationHeader
 };
