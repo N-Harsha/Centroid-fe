@@ -9,7 +9,7 @@ import { useQuery } from "react-query";
 import APIConstants from "../../common/constants/APIConstants";
 import { api } from "../../common/utils/APIMethods";
 import { useAuthContext } from "../../common/contexts/AuthContext";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { ConversationHeader, Username } from "../../common/StyledComponents";
 import SockJS from "sockjs-client";
 import { over } from "stompjs";
@@ -35,22 +35,31 @@ const StyledMessageContainer = styled.div`
 const LeftMessageWrapper = styled.div`
   width: 100%;
   justify-content: left;
+  display: flex;
 `;
 const RightMessageWrapper = styled.div`
   width: 100%;
   justify-content: right;
+  display: flex;
 `;
 const MessageWrapper = styled.span`
-  color: rgb(173, 173, 173);
+  background-color: #bebebe;
+  margin-bottom: 5px;
+  margin-top: 5px;
+  border-radius: 5px;
+  padding: 5px;
+  color: rgb(0, 0, 0);
 `;
 
 var stompClient = null;
 export default function Members(props) {
   const { username } = JSON.parse(window.sessionStorage.getItem("user"));
-  const [currentConversation, setCurrentConversation] = useState(null);
+  const [currentConversation, setCurrentConversation] = useState({});
   const [conversations, setConversations] = useState([]);
+  console.log(conversations);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [messageText, setMessageText] = useState("");
+  const messageTextRef = useRef(null);
   const options = {
     size: 180,
     minSize: 20,
@@ -66,8 +75,11 @@ export default function Members(props) {
     gravitation: 5
   };
 
-  const { fetchUserConversationsURL, fetchConversationMessagesURL } =
-    APIConstants;
+  const {
+    fetchUserConversationsURL,
+    fetchConversationMessagesURL,
+    sendUserMessageURL
+  } = APIConstants;
   const { authConfig } = useAuthContext();
   const fetchConversationMessages = () =>
     api(
@@ -79,37 +91,43 @@ export default function Members(props) {
 
   const fetchUserConversations = () =>
     api({ url: fetchUserConversationsURL }, authConfig);
-  const { data = [], isLoading: isConversationsLoading } = useQuery(
-    ["fetchUserConversations"],
-    fetchUserConversations,
-    {
+  const { refetch: refetchConversations, isLoading: isConversationsLoading } =
+    useQuery(["fetchUserConversations"], fetchUserConversations, {
       onSuccess: (response) => {
         registerUser(response);
         setConversations([...response]);
       }
-    }
-  );
+    });
   const {
-    data: messages,
+    data: messages = [],
     isLoading: isMessagesLoading,
     refetch: loadMessages
-  } = useQuery(["fetchMessages"], fetchConversationMessages, {
-    enabled: false
-  });
+  } = useQuery(
+    ["fetchMessages", currentConversation.conversationId],
+    fetchConversationMessages,
+    {
+      enabled: currentConversation.conversationId !== undefined
+    }
+  );
   const handleSubscriptionResponse = (payload, conversationId) => {
     if (
       currentConversation &&
       currentConversation.conversationId === conversationId
     ) {
       console.log("later");
+      console.log("yes");
     } else {
       const updatedConversations = conversations;
-      const foundVal = updatedConversations.filter(
-        (conversation) => conversation.conversationId === conversationId
-      );
-      foundVal.newMessages++;
-      console.log(updatedConversations);
-      setConversations(updatedConversations);
+      console.log(conversations, conversationId);
+      // setConversations((conversations) => {
+      //   const foundConversation = conversations.find(
+      //     (conversation) => conversation.conversationId === conversationId
+      //   );
+      //   foundConversation.newMessages++;
+      //   return conversations;
+      // });
+
+      console.log(conversations);
     }
   };
 
@@ -145,7 +163,7 @@ export default function Members(props) {
           fontSize: "20px"
         }}
       >
-        {currentConversation.conversationName.charAt(0).toUpperCase()}
+        {currentConversation?.conversationName?.charAt(0).toUpperCase()}
       </Avatar>
       <Username
         style={{ color: "black", fontSize: "20px", padding: "0px 10px" }}
@@ -156,9 +174,31 @@ export default function Members(props) {
   );
   const getColor = () => COLORS[Math.round(Math.random() * COLORS.length)];
 
+  const sendMessageHandler = async () => {
+    console.log(
+      currentConversation.conversationId,
+      messageTextRef.current.value,
+      currentConversation,
+      messageTextRef,
+      messageText
+    );
+    await api(
+      {
+        url: `${sendUserMessageURL}${currentConversation.conversationId}`,
+        method: "POST",
+        body: {
+          messageText: messageText
+        }
+      },
+      authConfig
+    );
+    setMessageText("");
+    loadMessages();
+  };
+
   const children = useMemo(
     () =>
-      conversations.map((data) => {
+      conversations?.map((data) => {
         const color = getColor();
         return (
           <div
@@ -186,7 +226,7 @@ export default function Members(props) {
             </StyledWrapper>
           </div>
         );
-      }),
+      }) || [],
     [conversations]
   );
 
@@ -195,35 +235,49 @@ export default function Members(props) {
       <Input
         style={{ width: "90%", textAlign: "left" }}
         placeholder="write something to send a message..."
+        ref={messageTextRef}
+        onChange={(event) => setMessageText(event.target.value)}
+        value={messageText}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") sendMessageHandler();
+        }}
       />
       <Button
         type="primary"
         style={{
           width: "10%"
         }}
+        onClick={sendMessageHandler}
       >
         send
       </Button>
     </Input.Group>
   );
 
+  const sortedMessages = useMemo(
+    () =>
+      messages.sort((a, b) =>
+        new Date(a.sentDateTime) > new Date(b.sentDateTime) ? 1 : -1
+      ),
+    [messages]
+  );
+
   const parsedMessages = isChatModalOpen
-    ? messages ??
-      [].map((message) => {
+    ? sortedMessages.map((message) => {
         if (message.fromUser === username) {
           return (
             <RightMessageWrapper>
-              <MessageWrapper>message.messageText</MessageWrapper>
+              <MessageWrapper>{`${message.fromUser}  ::  ${message.messageText}`}</MessageWrapper>
             </RightMessageWrapper>
           );
         } else {
           return (
             <LeftMessageWrapper>
-              <MessageWrapper>message.messageText</MessageWrapper>
+              <MessageWrapper>{`${message.fromUser}  ::  ${message.messageText}`}</MessageWrapper>
             </LeftMessageWrapper>
           );
         }
-      })
+      }) ?? []
     : null;
 
   return isConversationsLoading ? (
@@ -235,7 +289,9 @@ export default function Members(props) {
       </BubbleUI>
       <Modal
         open={isChatModalOpen}
-        onCancel={() => setIsChatModalOpen(false)}
+        onCancel={() => {
+          setIsChatModalOpen(false);
+        }}
         title={ChatModalHeader}
         width="40%"
         footer={ChatModalFooter}
