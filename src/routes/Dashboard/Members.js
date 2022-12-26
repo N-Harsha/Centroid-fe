@@ -3,13 +3,22 @@ import "react-bubble-ui/dist/index.css";
 import styled from "styled-components";
 import "./Member.css";
 import { UserOutlined } from "@ant-design/icons";
-import { Badge, Avatar, Spin, Modal, Space, Input, Button } from "antd";
+import {
+  Badge,
+  Avatar,
+  Spin,
+  Modal,
+  Space,
+  Input,
+  Button,
+  TimePicker
+} from "antd";
 import COLORS from "../../common/constants/Colors";
 import { useQuery } from "react-query";
 import APIConstants from "../../common/constants/APIConstants";
 import { api } from "../../common/utils/APIMethods";
 import { useAuthContext } from "../../common/contexts/AuthContext";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { ConversationHeader, Username } from "../../common/StyledComponents";
 import SockJS from "sockjs-client";
 import { over } from "stompjs";
@@ -56,10 +65,11 @@ export default function Members(props) {
   const { username } = JSON.parse(window.sessionStorage.getItem("user"));
   const [currentConversation, setCurrentConversation] = useState({});
   const [conversations, setConversations] = useState([]);
-  console.log(conversations);
+  const [newMessages, setNewMessages] = useState([]);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [conversationMessages, setConversationMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
-  const messageTextRef = useRef(null);
+
   const options = {
     size: 180,
     minSize: 20,
@@ -80,55 +90,82 @@ export default function Members(props) {
     fetchConversationMessagesURL,
     sendUserMessageURL
   } = APIConstants;
+
   const { authConfig } = useAuthContext();
+
+  const getColor = () => COLORS[Math.round(Math.random() * COLORS.length)];
+
+  const fetchUserConversations = () =>
+    api({ url: fetchUserConversationsURL }, authConfig);
+
+  const { refetch: refetchConversations, isLoading: isConversationsLoading } =
+    useQuery(["fetchUserConversations"], fetchUserConversations, {
+      onSuccess: (response) => {
+        registerUser(response);
+        setConversations(
+          response.map((conversation) => ({
+            ...conversation,
+            color: getColor()
+          }))
+        );
+        setNewMessages(
+          response.map((conversation) => ({
+            conversationId: conversation.conversationId,
+            newMessages: conversation.newMessages
+          }))
+        );
+      }
+    });
+
+  useEffect(() => console.log(conversations), [conversations]);
+  useEffect(() => console.log(newMessages), [newMessages]);
+
   const fetchConversationMessages = () =>
+    currentConversation.conversationId &&
     api(
       {
         url: `${fetchConversationMessagesURL}/${currentConversation.conversationId}`
       },
       authConfig
     );
-
-  const fetchUserConversations = () =>
-    api({ url: fetchUserConversationsURL }, authConfig);
-  const { refetch: refetchConversations, isLoading: isConversationsLoading } =
-    useQuery(["fetchUserConversations"], fetchUserConversations, {
-      onSuccess: (response) => {
-        registerUser(response);
-        setConversations([...response]);
-      }
-    });
   const {
-    data: messages = [],
+    data,
     isLoading: isMessagesLoading,
     refetch: loadMessages
   } = useQuery(
     ["fetchMessages", currentConversation.conversationId],
     fetchConversationMessages,
     {
-      enabled: currentConversation.conversationId !== undefined
+      enabled: currentConversation.conversationId !== undefined,
+      onSuccess: (response) => {
+        console.log(response);
+        setConversationMessages([...response]);
+      }
     }
   );
-  const handleSubscriptionResponse = (payload, conversationId) => {
-    if (
-      currentConversation &&
-      currentConversation.conversationId === conversationId
-    ) {
-      console.log("later");
-      console.log("yes");
-    } else {
-      const updatedConversations = conversations;
-      console.log(conversations, conversationId);
-      // setConversations((conversations) => {
-      //   const foundConversation = conversations.find(
-      //     (conversation) => conversation.conversationId === conversationId
-      //   );
-      //   foundConversation.newMessages++;
-      //   return conversations;
-      // });
 
-      console.log(conversations);
-    }
+  // const handleSubscriptionResponse = (payload, conversationId) => {
+  // console.log("test", currentConversation);
+  // console.log(
+  //   newMessages.find((test) => test.conversationId === conversationId)
+  // );
+
+  // if (
+  //   currentConversation &&
+  //   currentConversation.conversationId === conversationId
+  // ) {
+  //   setConversationMessages((messages) => [...messages, payload.body]);
+  // } else {
+  //   console.log(newMessages);
+  // const newMessageToUpdate = newMessages.find(
+  //   (newMessage) => newMessage.conversationId === conversationId
+  // );
+  // newMessageToUpdate.newMessages++;
+  // setNewMessages([...newMessages]);
+  //   }
+  // };
+  const handleSubscriptionResponse = (payload, conversationId) => {
+    loadMessages();
   };
 
   const registerUser = (response) => {
@@ -136,13 +173,19 @@ export default function Members(props) {
     stompClient = over(Sock);
     stompClient.connect({}, () => onConnected(response), onError);
   };
-  const onConnected = (response) => {
-    response.forEach((ele) => {
-      stompClient.subscribe(`/conversation/${ele.conversationId}`, (payload) =>
-        handleSubscriptionResponse(payload, ele.conversationId)
-      );
-    });
-  };
+  const onConnected = useCallback(
+    (response) => {
+      console.log("testt");
+      response.forEach((ele) => {
+        stompClient.subscribe(
+          `/conversation/${ele.conversationId}`,
+          (payload) => handleSubscriptionResponse(payload, ele.conversationId)
+        );
+      });
+    },
+    [currentConversation]
+  );
+
   const onError = () => {
     console.log("failure");
   };
@@ -172,16 +215,8 @@ export default function Members(props) {
       </Username>
     </ConversationHeader>
   );
-  const getColor = () => COLORS[Math.round(Math.random() * COLORS.length)];
 
   const sendMessageHandler = async () => {
-    console.log(
-      currentConversation.conversationId,
-      messageTextRef.current.value,
-      currentConversation,
-      messageTextRef,
-      messageText
-    );
     await api(
       {
         url: `${sendUserMessageURL}${currentConversation.conversationId}`,
@@ -192,23 +227,24 @@ export default function Members(props) {
       },
       authConfig
     );
+    setConversationMessages((messages) => [
+      ...messages,
+      { messageText: messageText, fromUser: username }
+    ]);
     setMessageText("");
-    loadMessages();
   };
-
+  useEffect(() => console.log(currentConversation), [currentConversation]);
   const children = useMemo(
     () =>
-      conversations?.map((data) => {
-        const color = getColor();
+      conversations?.map((data, i) => {
         return (
           <div
             className="child"
             style={{
-              backgroundColor: color
+              backgroundColor: data.color
             }}
             onClick={() => {
-              setCurrentConversation({ ...data, color });
-              loadMessages();
+              setCurrentConversation(data);
               setIsChatModalOpen(true);
             }}
             key={data.conversationId}
@@ -216,7 +252,7 @@ export default function Members(props) {
             <StyledWrapper>
               <center>
                 <Badge
-                  count={data.newMessages}
+                  count={newMessages[i].newMessages}
                   style={{ fontSize: 20, color: "black", fontWeight: "bold" }}
                 >
                   <StyledAvatar size={90} icon={<UserOutlined />} />
@@ -227,7 +263,7 @@ export default function Members(props) {
           </div>
         );
       }) || [],
-    [conversations]
+    [conversations, newMessages]
   );
 
   const ChatModalFooter = (
@@ -235,7 +271,6 @@ export default function Members(props) {
       <Input
         style={{ width: "90%", textAlign: "left" }}
         placeholder="write something to send a message..."
-        ref={messageTextRef}
         onChange={(event) => setMessageText(event.target.value)}
         value={messageText}
         onKeyDown={(e) => {
@@ -256,10 +291,10 @@ export default function Members(props) {
 
   const sortedMessages = useMemo(
     () =>
-      messages.sort((a, b) =>
+      conversationMessages.sort((a, b) =>
         new Date(a.sentDateTime) > new Date(b.sentDateTime) ? 1 : -1
       ),
-    [messages]
+    [conversationMessages]
   );
 
   const parsedMessages = isChatModalOpen
@@ -267,13 +302,13 @@ export default function Members(props) {
         if (message.fromUser === username) {
           return (
             <RightMessageWrapper>
-              <MessageWrapper>{`${message.fromUser}  ::  ${message.messageText}`}</MessageWrapper>
+              <MessageWrapper>{`${message.messageText}`}</MessageWrapper>
             </RightMessageWrapper>
           );
         } else {
           return (
             <LeftMessageWrapper>
-              <MessageWrapper>{`${message.fromUser}  ::  ${message.messageText}`}</MessageWrapper>
+              <MessageWrapper>{`${message.messageText}`}</MessageWrapper>
             </LeftMessageWrapper>
           );
         }
@@ -291,6 +326,7 @@ export default function Members(props) {
         open={isChatModalOpen}
         onCancel={() => {
           setIsChatModalOpen(false);
+          setCurrentConversation({});
         }}
         title={ChatModalHeader}
         width="40%"
